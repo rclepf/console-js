@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConsoleJS - Sandbox de Estudos</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #1e1e1e;
+            color: #f4f4f4;
+        }
+
+        /* Topbar / Ações */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #2d2d2d;
+            border-bottom: 1px solid #3c3c3c;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: #4fc1ff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-run { background-color: #4caf50; color: white; }
+        .btn-run:hover { background-color: #45a049; }
+
+        .btn-copy { background-color: #007acc; color: white; }
+        .btn-copy:hover { background-color: #0062a3; }
+
+        .btn-save { background-color: #e67e22; color: white; }
+        .btn-save:hover { background-color: #d35400; }
+
+        .btn-clear { background-color: #f44336; color: white; }
+        .btn-clear:hover { background-color: #da190b; }
+
+        /* Área Principal de Trabalho */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Editor de Código */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #3c3c3c;
+        }
+
+        .section-title {
+            background-color: #252526;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #aaa;
+            border-bottom: 1px solid #3c3c3c;
+        }
+
+        textarea {
+            flex: 1;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            padding: 15px;
+            border: none;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        /* Painéis de Output */
+        .output-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel:first-child {
+            border-bottom: 2px solid #3c3c3c;
+        }
+
+        /* Estilo do Terminal */
+        .terminal {
+            flex: 1;
+            background-color: #0c0c0c;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+        }
+
+        .log-error { color: #ff6b6b; }
+        .log-info { color: #00ff00; }
+
+        /* Estilo do Preview Web */
+        iframe {
+            flex: 1;
+            background-color: #ffffff;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⚡ JS Web & Terminal Sandbox</h1>
+        <div class="btn-group">
+            <button class="btn-run" onclick="runCode()">▶ Executar</button>
+            <button class="btn-copy" onclick="copyCode()">📋 Copiar</button>
+            <button class="btn-save" onclick="saveCode()">💾 Salvar .js</button>
+            <button class="btn-clear" onclick="clearAll()">🗑️ Limpar</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- Lado Esquerdo: Editor -->
+        <div class="editor-container">
+            <div class="section-title">Editor JavaScript</div>
+            <textarea id="code-editor" spellcheck="false" placeholder="// Digite seu código JS aqui...&#10;// Exemplo Terminal: console.log('Olá Mundo!');&#10;// Exemplo Web: document.body.innerHTML = '<h1>Olá do DOM!</h1>';"></textarea>
+        </div>
+
+        <!-- Lado Direito: Saídas -->
+        <div class="output-container">
+            <!-- Painel do Terminal -->
+            <div class="panel">
+                <div class="section-title">Console (Modo Terminal)</div>
+                <div id="terminal-output" class="terminal"></div>
+            </div>
+            <!-- Painel do Navegador -->
+            <div class="panel">
+                <div class="section-title">Visualização Web (DOM)</div>
+                <div id="web-preview-wrapper" style="flex: 1; display: flex;">
+                    <iframe id="web-preview"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Código inicial padrão para guiar o aluno
+        const defaultCode = `// 1. Exemplo modo Terminal\nconsole.log("Olá, Terminal!");\nconsole.log("Resultado de 2 + 2 =", 2 + 2);\n\n// 2. Exemplo modo Web (Manipulando a página)\ndocument.body.style.backgroundColor = "#e0f7fa";\ndocument.body.innerHTML = \`\n    <div style="padding: 20px; font-family: sans-serif;">\n        <h2>Olá do Mundo Web! 🌐</h2>\n        <p>Este texto foi inserido via manipulação de DOM.</p>\n    </div>\n\`;`;
+        
+        document.getElementById('code-editor').value = defaultCode;
+
+        function runCode() {
+            const code = document.getElementById('code-editor').value;
+            const terminal = document.getElementById('terminal-output');
+            const previewWrapper = document.getElementById('web-preview-wrapper');
+            
+            // Limpa o terminal antes da nova execução
+            terminal.innerHTML = '';
+
+            // Recria o iframe para resetar o estado do DOM e variáveis globais
+            previewWrapper.innerHTML = '<iframe id="web-preview"></iframe>';
+            const iframe = document.getElementById('web-preview');
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+            // Script injetado para interceptar os console.log do iframe e mandar para o nosso terminal de fora
+            const scriptInjetável = `
+                <script>
+                    const _log = console.log;
+                    const _error = console.error;
+
+                    console.log = (...args) => {
+                        _log(...args);
+                        window.parent.postMessage({ type: 'log', text: args.join(' ') }, '*');
+                    };
+
+                    console.error = (...args) => {
+                        _error(...args);
+                        window.parent.postMessage({ type: 'error', text: args.join(' ') }, '*');
+                    };
+
+                    // Captura erros de sintaxe ou execução em tempo de execução
+                    window.onerror = (message, source, lineno, colno, error) => {
+                        window.parent.postMessage({ type: 'error', text: message + " (Linha " + lineno + ")" }, '*');
+                    };
+                <\/script>
+            `;
+
+            // Escreve o ambiente e o código do aluno dentro do iframe sandbox
+            iframeDoc.open();
+            iframeDoc.write(scriptInjetável + '<body></body><script>' + code + '<\/script>');
+            iframeDoc.close();
+        }
+
+        // Ouvinte que recebe as mensagens vindas de dentro do iframe
+        window.addEventListener('message', (event) => {
+            const terminal = document.getElementById('terminal-output');
+            if (!event.data || !event.data.type) return;
+
+            const messageDiv = document.createElement('div');
+            
+            if (event.data.type === 'log') {
+                messageDiv.className = 'log-info';
+                messageDiv.textContent = `> ${event.data.text}`;
+            } else if (event.data.type === 'error') {
+                messageDiv.className = 'log-error';
+                messageDiv.textContent = `❌ Erro: ${event.data.text}`;
+            }
+
+            terminal.appendChild(messageDiv);
+            terminal.scrollTop = terminal.scrollHeight; // Auto-scroll para o final
+        });
+
+        // Função para copiar o código do editor
+        function copyCode() {
+            const code = document.getElementById('code-editor').value;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Código copiado com sucesso!');
+            }).catch(err => {
+                alert('Erro ao copiar código: ', err);
+            });
+        }
+
+        // Nova Função: Salvar/Descarregar arquivo como .js
+        function saveCode() {
+            const code = document.getElementById('code-editor').value;
+            
+            // Cria um Blob com o conteúdo de texto e define o tipo como JavaScript
+            const blob = new Blob([code], { type: 'text/javascript;charset=utf-8' });
+            
+            // Cria um URL temporário para o Blob
+            const url = URL.createObjectURL(blob);
+            
+            // Cria um elemento de link dinâmico para simular o clique de download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'script.js'; // Nome padrão do arquivo que será baixado
+            
+            // Adiciona o link ao documento, clica e remove-o em seguida
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Libera o URL temporário da memória
+            URL.revokeObjectURL(url);
+        }
+
+        // Limpa as telas
+        function clearAll() {
+            document.getElementById('terminal-output').innerHTML = '';
+            const previewWrapper = document.getElementById('web-preview-wrapper');
+            previewWrapper.innerHTML = '<iframe id="web-preview"></iframe>';
+        }
+    </script>
+</body>
+</html>
